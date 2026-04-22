@@ -2,7 +2,7 @@
   "name": "Blood Moon Survivors",
   "short_name": "BloodMoon",
   "description": "Survive endless waves of enemies in the cursed village.",
-  "start_url": "/",
+  "start_url": "/blood-moon-survivors/",
   "display": "standalone",
   "background_color": "#1a0a0a",
   "theme_color": "#1a0a0a",
