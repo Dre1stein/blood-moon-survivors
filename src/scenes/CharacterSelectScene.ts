@@ -249,6 +249,7 @@ export class CharacterSelectScene extends Phaser.Scene {
     });
     this.startButtonBg.on('pointerdown', () => {
       const character = CHARACTER_MAP[this.selectedCharacterId];
+      this.playUiClick();
       this.scene.start(GameScene.KEY, { character, mapId: this.saveData.selectedMap });
     });
 
@@ -362,5 +363,11 @@ private refreshUi(): void {
       .forEach((id) => {
         SaveSystem.addCoins(ACHIEVEMENT_MAP[id].reward);
       });
+  }
+
+  private playUiClick(): void {
+    if (this.cache.audio.exists('ui-click')) {
+      this.sound.play('ui-click', { volume: 0.35 });
+    }
   }
 }

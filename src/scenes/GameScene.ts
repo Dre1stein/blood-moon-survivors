@@ -23,6 +23,7 @@ import { ParticleManager } from '../systems/ParticleManager';
 import { SaveSystem } from '../systems/SaveSystem';
 import { WeaponSystem } from '../systems/WeaponSystem';
 import { VirtualJoystick } from '../systems/VirtualJoystick';
+import { AudioManager } from '../systems/AudioManager';
 import { EquipmentSlot, LevelUpChoice, PASSIVE_LABELS, PassiveType, STAT_LABELS, StatType } from '../types';
 import { BASE_WEAPON_DEFINITIONS, getWeaponDefinition } from '../weapons/definitions';
 
@@ -90,6 +91,7 @@ export class GameScene extends Phaser.Scene {
   private achievementState: AchievementState = SaveSystem.getAchievements();
   private damageFlash?: Phaser.GameObjects.Rectangle;
   private joystick?: VirtualJoystick;
+  private audio?: AudioManager;
 
   private lastHpStr = '';
   private lastLevelStr = '';
@@ -168,6 +170,8 @@ export class GameScene extends Phaser.Scene {
     this.createGameOverOverlay();
     this.refreshWeaponIndicators();
     this.joystick = new VirtualJoystick(this);
+    this.audio = new AudioManager(this);
+    this.audio.startBgm();
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.handleShutdown, this);
   }
 
@@ -369,6 +373,7 @@ private handlePlayerHit(
   const damage = enemy instanceof Boss ? enemy.damage : enemy instanceof EliteEnemy ? ELITE_CONFIG.DAMAGE : ENEMY_CONFIG.DAMAGE;
   this.particleManager.hitEffect(player.x, player.y, 0xff4444);
   player.takeDamage(damage);
+  this.audio?.play('player-hit');
 
   // Add subtle screen flash on damage
   this.damageFlash?.setAlpha(0.15);
@@ -384,6 +389,7 @@ private handlePlayerHit(
     this.trackAchievementStats({ totalKills: 1 });
     this.particleManager.deathEffect(drop.x, drop.y);
     this.rollDrops(drop.x, drop.y, 'normal');
+    this.audio?.play('enemy-death');
     this.updateHud();
   }
 
@@ -392,6 +398,7 @@ private handlePlayerHit(
     this.trackAchievementStats({ totalKills: 1 });
     this.particleManager.deathEffect(drop.x, drop.y);
     this.rollDrops(drop.x, drop.y, 'elite');
+    this.audio?.play('elite-death');
     this.updateHud();
   }
 
@@ -401,6 +408,7 @@ private handlePlayerHit(
     this.particleManager.bossDeathEffect(drop.x, drop.y);
     this.rollDrops(drop.x, drop.y, 'boss');
     this.showNotification(`${drop.bossName} defeated`, '#ff6666');
+    this.audio?.play('boss-death');
     this.updateHud();
   }
 
@@ -434,6 +442,7 @@ private handlePlayerHit(
       this.particleManager.xpCollectEffect(this.player.x, this.player.y);
     }
 
+    this.audio?.play('xp-pickup');
     const xpMultiplier = this.currentMap.xpMultiplier * (this.player?.getXpMultiplier() ?? 1);
     const leveledUp = this.levelSystem.addXp(value * xpMultiplier);
     this.trackAchievementStats({ maxLevelReached: this.levelSystem.level });
@@ -460,6 +469,7 @@ private handlePlayerHit(
       this.particleManager.healEffect(this.player.x, this.player.y);
     }
 
+    this.audio?.play('health-pickup');
     this.updateHud();
   }
 
@@ -467,11 +477,13 @@ private handlePlayerHit(
     const adjustedValue = Math.max(1, Math.round(value * this.currentMap.coinMultiplier));
     this.coinCount += adjustedValue;
     this.score += adjustedValue;
+    this.audio?.play('coin-pickup');
     this.updateHud();
   }
 
   private handleBloodstoneCollected(value: number): void {
     this.bloodstoneCount += Math.max(1, Math.round(value * this.currentMap.bloodstoneMultiplier));
+    this.audio?.play('bloodstone-pickup');
     this.updateHud();
   }
 
@@ -582,6 +594,8 @@ private handlePlayerHit(
     this.isPaused = true;
     this.enemySpawner?.stop();
     this.physics.pause();
+    this.audio?.stopBgm();
+    this.audio?.play('game-over');
 
     this.overlay?.setVisible(true);
     this.gameOverTitle?.setVisible(true);
@@ -645,6 +659,7 @@ private handlePlayerHit(
     this.events.off('damage-dealt', this.handleDamageDealt, this);
     this.enemySpawner?.destroy();
     this.joystick?.destroy();
+    this.audio?.destroy();
     this.weaponSystem.reset();
     this.xpGems?.destroy(true);
     this.healthGems?.destroy(true);
@@ -705,6 +720,7 @@ private handlePlayerHit(
     this.isPaused = true;
     this.levelSystem.isPaused = true;
     this.physics.pause();
+    this.audio?.play('level-up');
 
     if (!this.levelUpOverlay) {
       this.levelUpOverlay = this.add
@@ -874,6 +890,7 @@ private handlePlayerHit(
       const evolvedDefinition = getWeaponDefinition(evolvedName);
       this.trackAchievementStats({ evolutionsTriggered: 1 });
       this.refreshWeaponIndicators();
+      this.audio?.play('evolve');
       this.showNotification(`${evolvedDefinition?.label ?? evolvedName} evolved!`, `#${(evolvedDefinition?.color ?? 0xffaa00).toString(16).padStart(6, '0')}`);
     }
 
