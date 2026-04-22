@@ -124,6 +124,7 @@ export class CharacterSelectScene extends Phaser.Scene {
         this.refreshCard(character.id);
       });
       container.on('pointerdown', () => {
+        this.playUiClick();
         this.handleCharacterClick(character.id);
       });
 
@@ -153,6 +154,7 @@ export class CharacterSelectScene extends Phaser.Scene {
       this.skillTreeButtonBg?.setFillStyle(0x6c2e91, 0.95);
     });
     this.skillTreeButtonBg.on('pointerdown', () => {
+      this.playUiClick();
       this.scene.start(SkillTreeScene.KEY);
     });
 
@@ -172,6 +174,7 @@ export class CharacterSelectScene extends Phaser.Scene {
       this.runeButtonBg?.setFillStyle(0x1a6b5a, 0.95);
     });
     this.runeButtonBg.on('pointerdown', () => {
+      this.playUiClick();
       this.scene.start(RuneScene.KEY);
     });
 
@@ -191,6 +194,7 @@ export class CharacterSelectScene extends Phaser.Scene {
       this.equipmentButtonBg?.setFillStyle(0xa86132, 0.95);
     });
     this.equipmentButtonBg.on('pointerdown', () => {
+      this.playUiClick();
       this.scene.start(EquipmentScene.KEY);
     });
 
@@ -210,6 +214,7 @@ export class CharacterSelectScene extends Phaser.Scene {
       this.achievementButtonBg?.setFillStyle(0x2a5a3a, 0.95);
     });
     this.achievementButtonBg.on('pointerdown', () => {
+      this.playUiClick();
       this.scene.start(AchievementScene.KEY);
     });
 
@@ -229,6 +234,7 @@ export class CharacterSelectScene extends Phaser.Scene {
       this.mapButtonBg?.setFillStyle(0x2a3a6b, 0.95);
     });
     this.mapButtonBg.on('pointerdown', () => {
+      this.playUiClick();
       this.scene.start(MapSelectScene.KEY);
     });
 

@@ -113,6 +113,7 @@ export class RuneScene extends Phaser.Scene {
           return;
         }
 
+        this.playUiClick();
         this.saveData = SaveSystem.unequipRune(slotIndex);
         this.flashDisplay(container, background, 0xffcc44, () => this.refreshLoadoutSlot(slotIndex));
         this.refreshUi();
@@ -155,7 +156,10 @@ export class RuneScene extends Phaser.Scene {
       buyButton.setInteractive({ useHandCursor: true });
       buyButton.on('pointerover', () => buyButton.setFillStyle(0x346637, 1));
       buyButton.on('pointerout', () => this.refreshColumn(type));
-      buyButton.on('pointerdown', () => this.handleBuyRune(type));
+      buyButton.on('pointerdown', () => {
+        this.playUiClick();
+        this.handleBuyRune(type);
+      });
 
       this.runeColumns.push({ type, panel, buyButton, buyLabel, rows });
 
@@ -198,7 +202,10 @@ export class RuneScene extends Phaser.Scene {
       mergeButton.setInteractive({ useHandCursor: true });
       mergeButton.on('pointerover', () => mergeButton?.setFillStyle(0x563564, 1));
       mergeButton.on('pointerout', () => this.refreshRow(type, level));
-      mergeButton.on('pointerdown', () => this.handleMergeRune(type, level));
+      mergeButton.on('pointerdown', () => {
+        this.playUiClick();
+        this.handleMergeRune(type, level);
+      });
 
       children.push(mergeButton, mergeLabel);
     }
@@ -213,6 +220,7 @@ export class RuneScene extends Phaser.Scene {
         return;
       }
 
+      this.playUiClick();
       this.handleEquipRune(type, level, container, background);
     });
 
@@ -230,9 +238,18 @@ export class RuneScene extends Phaser.Scene {
     button.setInteractive({ useHandCursor: true });
     button.on('pointerover', () => button.setFillStyle(0x382026, 1));
     button.on('pointerout', () => button.setFillStyle(0x24161a, 0.95));
-    button.on('pointerdown', () => this.scene.start(CharacterSelectScene.KEY));
+    button.on('pointerdown', () => {
+      this.playUiClick();
+      this.scene.start(CharacterSelectScene.KEY);
+    });
 
     label.setDepth((button.depth ?? 0) + 1);
+  }
+
+  private playUiClick(): void {
+    if (this.cache.audio.exists('ui-click')) {
+      this.sound.play('ui-click', { volume: 0.35 });
+    }
   }
 
   private handleBuyRune(type: RuneType): void {

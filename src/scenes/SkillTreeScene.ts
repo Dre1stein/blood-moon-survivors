@@ -119,7 +119,10 @@ export class SkillTreeScene extends Phaser.Scene {
     container.setInteractive(new Phaser.Geom.Rectangle(-width * 0.5, -height * 0.5, width, height), Phaser.Geom.Rectangle.Contains);
     container.on('pointerover', () => background.setFillStyle(0x26172f, 1));
     container.on('pointerout', () => this.refreshNode(node.id));
-    container.on('pointerdown', () => this.tryUpgrade(node));
+    container.on('pointerdown', () => {
+        this.playUiClick();
+        this.tryUpgrade(node);
+      });
 
     return { node, container, background, levelText, descriptionText, costText, indicators };
   }
@@ -135,9 +138,18 @@ export class SkillTreeScene extends Phaser.Scene {
     button.setInteractive({ useHandCursor: true });
     button.on('pointerover', () => button.setFillStyle(0x382026, 1));
     button.on('pointerout', () => button.setFillStyle(0x24161a, 0.95));
-    button.on('pointerdown', () => this.scene.start(CharacterSelectScene.KEY));
+    button.on('pointerdown', () => {
+      this.playUiClick();
+      this.scene.start(CharacterSelectScene.KEY);
+    });
 
     label.setDepth((button.depth ?? 0) + 1);
+  }
+
+  private playUiClick(): void {
+    if (this.cache.audio.exists('ui-click')) {
+      this.sound.play('ui-click', { volume: 0.35 });
+    }
   }
 
   private tryUpgrade(node: SkillNode): void {

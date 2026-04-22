@@ -110,6 +110,7 @@ export class MapSelectScene extends Phaser.Scene {
         this.refreshCard(map.id);
       });
       container.on('pointerdown', () => {
+        this.playUiClick();
         this.handleMapClick(map.id);
       });
 
@@ -128,9 +129,18 @@ export class MapSelectScene extends Phaser.Scene {
     button.setInteractive({ useHandCursor: true });
     button.on('pointerover', () => button.setFillStyle(0x253525, 1));
     button.on('pointerout', () => button.setFillStyle(0x1a251a, 0.95));
-    button.on('pointerdown', () => this.scene.start(CharacterSelectScene.KEY));
+    button.on('pointerdown', () => {
+      this.playUiClick();
+      this.scene.start(CharacterSelectScene.KEY);
+    });
 
     label.setDepth((button.depth ?? 0) + 1);
+  }
+
+  private playUiClick(): void {
+    if (this.cache.audio.exists('ui-click')) {
+      this.sound.play('ui-click', { volume: 0.35 });
+    }
   }
 
   private handleMapClick(mapId: MapId): void {

@@ -135,9 +135,18 @@ const cardIndex = this.cardViews.length;
     button.setInteractive({ useHandCursor: true });
     button.on('pointerover', () => button.setFillStyle(0x382026, 1));
     button.on('pointerout', () => button.setFillStyle(0x24161a, 0.95));
-    button.on('pointerdown', () => this.scene.start(CharacterSelectScene.KEY));
+    button.on('pointerdown', () => {
+      this.playUiClick();
+      this.scene.start(CharacterSelectScene.KEY);
+    });
 
     label.setDepth((button.depth ?? 0) + 1);
+  }
+
+  private playUiClick(): void {
+    if (this.cache.audio.exists('ui-click')) {
+      this.sound.play('ui-click', { volume: 0.35 });
+    }
   }
 
   private refreshUi(): void {
