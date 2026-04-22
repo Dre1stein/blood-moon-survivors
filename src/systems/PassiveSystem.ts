@@ -36,6 +36,26 @@ export class PassiveSystem {
     return this.getPassiveLevel(PassiveType.CritChance) * 0.05;
   }
 
+  getPickupRangeMultiplier(): number {
+    return 1 + this.getPassiveLevel(PassiveType.PickupRange) * 0.15;
+  }
+
+  getArmorBonus(): number {
+    return this.getPassiveLevel(PassiveType.Armor) * 3;
+  }
+
+  getXpMultiplier(): number {
+    return 1 + this.getPassiveLevel(PassiveType.XpBoost) * 0.2;
+  }
+
+  getCooldownMultiplier(): number {
+    return 1 - this.getPassiveLevel(PassiveType.CooldownReduction) * 0.08;
+  }
+
+  getLifeStealPercent(): number {
+    return this.getPassiveLevel(PassiveType.LifeSteal) * 0.05;
+  }
+
   reset(): void {
     this.passives.clear();
   }

@@ -25,6 +25,11 @@ export enum PassiveType {
   HpRegen = 'hpRegen',
   DamageBonus = 'damageBonus',
   CritChance = 'critChance',
+  PickupRange = 'pickupRange',
+  Armor = 'armor',
+  XpBoost = 'xpBoost',
+  CooldownReduction = 'cooldownReduction',
+  LifeSteal = 'lifeSteal',
 }
 
 export const PASSIVE_LABELS: Record<PassiveType, string> = {
@@ -32,6 +37,11 @@ export const PASSIVE_LABELS: Record<PassiveType, string> = {
   [PassiveType.HpRegen]: 'HP Regen +1/s',
   [PassiveType.DamageBonus]: 'Damage +10%',
   [PassiveType.CritChance]: 'Crit +5%',
+  [PassiveType.PickupRange]: 'Pickup Range +15%',
+  [PassiveType.Armor]: 'Armor +3',
+  [PassiveType.XpBoost]: 'XP Gain +20%',
+  [PassiveType.CooldownReduction]: 'Cooldown -8%',
+  [PassiveType.LifeSteal]: 'Life Steal +5%',
 } as const;
 
 export type LevelUpChoice =

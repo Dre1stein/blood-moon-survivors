@@ -72,6 +72,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     }
 
     this.hp = Math.max(0, this.hp - amount);
+    this.scene.events.emit('damage-dealt', amount);
 
     if (this.hp <= 0) {
       this.kill();

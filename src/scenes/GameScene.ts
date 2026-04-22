@@ -22,6 +22,7 @@ import { PassiveSystem } from '../systems/PassiveSystem';
 import { ParticleManager } from '../systems/ParticleManager';
 import { SaveSystem } from '../systems/SaveSystem';
 import { WeaponSystem } from '../systems/WeaponSystem';
+import { VirtualJoystick } from '../systems/VirtualJoystick';
 import { EquipmentSlot, LevelUpChoice, PASSIVE_LABELS, PassiveType, STAT_LABELS, StatType } from '../types';
 import { BASE_WEAPON_DEFINITIONS, getWeaponDefinition } from '../weapons/definitions';
 
@@ -88,6 +89,7 @@ export class GameScene extends Phaser.Scene {
   private currentMap: GameMap = GAME_MAP_MAP['cursed-village'];
   private achievementState: AchievementState = SaveSystem.getAchievements();
   private damageFlash?: Phaser.GameObjects.Rectangle;
+  private joystick?: VirtualJoystick;
 
   private lastHpStr = '';
   private lastLevelStr = '';
@@ -160,10 +162,12 @@ export class GameScene extends Phaser.Scene {
     this.events.on('bloodstone-collected', this.handleBloodstoneCollected, this);
     this.events.on('equipment-collected', this.handleEquipmentCollected, this);
     this.events.once('player-died', this.handlePlayerDied, this);
+    this.events.on('damage-dealt', this.handleDamageDealt, this);
 
     this.createHud();
     this.createGameOverOverlay();
     this.refreshWeaponIndicators();
+    this.joystick = new VirtualJoystick(this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.handleShutdown, this);
   }
 
@@ -175,6 +179,15 @@ export class GameScene extends Phaser.Scene {
 
     if (!this.isPaused) {
       this.player?.update(delta);
+    }
+
+    if (this.player && this.joystick?.isActive() && !this.isPaused) {
+      const { x, y } = this.joystick.getDirection();
+      const body = this.player.body;
+      if (body instanceof Phaser.Physics.Arcade.Body && (x !== 0 || y !== 0)) {
+        const velocity = new Phaser.Math.Vector2(x, y).normalize().scale(this.player.speed);
+        body.setVelocity(velocity.x, velocity.y);
+      }
     }
 
     if (this.player && this.enemySpawner && !this.isGameOver && !this.isPaused) {
@@ -404,12 +417,25 @@ private handlePlayerHit(
     }
   }
 
+  private handleDamageDealt(amount: number): void {
+    if (!this.player || this.player.hp <= 0) {
+      return;
+    }
+
+    const lifesteal = this.player.getLifeStealPercent();
+
+    if (lifesteal > 0) {
+      this.player.heal(amount * lifesteal);
+    }
+  }
+
   private handleXpCollected(value: number): void {
     if (this.player) {
       this.particleManager.xpCollectEffect(this.player.x, this.player.y);
     }
 
-    const leveledUp = this.levelSystem.addXp(value * this.currentMap.xpMultiplier);
+    const xpMultiplier = this.currentMap.xpMultiplier * (this.player?.getXpMultiplier() ?? 1);
+    const leveledUp = this.levelSystem.addXp(value * xpMultiplier);
     this.trackAchievementStats({ maxLevelReached: this.levelSystem.level });
 
     if (!leveledUp) {
@@ -616,7 +642,9 @@ private handlePlayerHit(
     this.events.off('bloodstone-collected', this.handleBloodstoneCollected, this);
     this.events.off('equipment-collected', this.handleEquipmentCollected, this);
     this.events.off('player-died', this.handlePlayerDied, this);
+    this.events.off('damage-dealt', this.handleDamageDealt, this);
     this.enemySpawner?.destroy();
+    this.joystick?.destroy();
     this.weaponSystem.reset();
     this.xpGems?.destroy(true);
     this.healthGems?.destroy(true);

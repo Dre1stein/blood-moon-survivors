@@ -31,6 +31,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private passiveHpRegenRate = 0;
   private equipmentCritBonus = 0;
   private equipmentHpRegenBonus = 0;
+  private passiveArmorBonus = 0;
+  private passivePickupRangeMultiplier = 1;
+  private passiveXpMultiplier = 1;
+  private passiveCooldownMultiplier = 1;
+  private passiveLifeStealPercent = 0;
+  private selectedCharacter?: CharacterData;
 
   facing = FacingDirection.Idle;
   hp: number = PLAYER_HP.MAX;
@@ -88,6 +94,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.passiveHpRegenRate = 0;
     this.equipmentCritBonus = 0;
     this.equipmentHpRegenBonus = 0;
+    this.passiveArmorBonus = 0;
+    this.passivePickupRangeMultiplier = 1;
+    this.passiveXpMultiplier = 1;
+    this.passiveCooldownMultiplier = 1;
+    this.passiveLifeStealPercent = 0;
     this.isInvincible = false;
     this.invincibleTimer = 0;
     this.isDead = false;
@@ -224,6 +235,24 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.passiveCritChance = passiveSystem.getCritChance();
         this.recalculateCritChance();
         break;
+      case PassiveType.PickupRange:
+        this.passivePickupRangeMultiplier = passiveSystem.getPickupRangeMultiplier();
+        this.recalculatePickupRange();
+        break;
+      case PassiveType.Armor:
+        this.passiveArmorBonus = passiveSystem.getArmorBonus();
+        this.recalculateArmor();
+        break;
+      case PassiveType.XpBoost:
+        this.passiveXpMultiplier = passiveSystem.getXpMultiplier();
+        break;
+      case PassiveType.CooldownReduction:
+        this.passiveCooldownMultiplier = passiveSystem.getCooldownMultiplier();
+        this.recalculateCooldown();
+        break;
+      case PassiveType.LifeSteal:
+        this.passiveLifeStealPercent = passiveSystem.getLifeStealPercent();
+        break;
     }
   }
 
@@ -254,6 +283,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   applyCharacter(character: CharacterData): void {
+    this.selectedCharacter = character;
     const { bonuses } = character;
 
     if (bonuses.speedMultiplier !== undefined) {
@@ -313,6 +343,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   calculateCooldown(baseCooldown: number): number {
     return baseCooldown * this.cooldownMultiplier;
+  }
+
+  getXpMultiplier(): number {
+    return this.passiveXpMultiplier;
+  }
+
+  getLifeStealPercent(): number {
+    return this.passiveLifeStealPercent;
   }
 
   applySpeedMultiplier(multiplier: number): void {
@@ -466,6 +504,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   private recalculatePickupRange(): void {
-    this.pickupRange = XP_CONFIG.PICKUP_RANGE * this.pickupRangeMultiplierBonus;
+    this.pickupRange = XP_CONFIG.PICKUP_RANGE * this.pickupRangeMultiplierBonus * this.passivePickupRangeMultiplier;
+  }
+
+  private recalculateArmor(): void {
+    this.armor = (this.selectedCharacter?.bonuses?.armor ?? 0) + this.passiveArmorBonus;
+  }
+
+  private recalculateCooldown(): void {
+    this.cooldownMultiplier = (this.selectedCharacter?.bonuses?.cooldownMultiplier ?? 1) * this.passiveCooldownMultiplier;
   }
 }
