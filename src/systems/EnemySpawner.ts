@@ -62,6 +62,7 @@ export class EnemySpawner {
         this.group.add(boss);
         this.bossAlive = true;
         this.bossesSpawned += 1;
+        this.scene.cameras.main.shake(300, 0.008);
       },
     });
   }

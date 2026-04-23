@@ -66,6 +66,7 @@ export class GameScene extends Phaser.Scene {
   private coinText?: Phaser.GameObjects.Text;
   private bloodstoneText?: Phaser.GameObjects.Text;
   private timerText?: Phaser.GameObjects.Text;
+  private killCountText?: Phaser.GameObjects.Text;
   private overlay?: Phaser.GameObjects.Rectangle;
   private gameOverTitle?: Phaser.GameObjects.Text;
   private gameOverScore?: Phaser.GameObjects.Text;
@@ -93,12 +94,20 @@ export class GameScene extends Phaser.Scene {
   private joystick?: VirtualJoystick;
   private audio?: AudioManager;
 
+  private killCount = 0;
+  private totalDamageDealt = 0;
   private lastHpStr = '';
   private lastLevelStr = '';
   private lastScoreStr = '';
   private lastCoinStr = '';
   private lastBloodstoneStr = '';
   private lastTimerStr = '';
+  private lastKillStr = '';
+  private pauseOverlay?: Phaser.GameObjects.Rectangle;
+  private pauseTitle?: Phaser.GameObjects.Text;
+  private pauseResumeBtn?: Phaser.GameObjects.Rectangle;
+  private pauseQuitBtn?: Phaser.GameObjects.Rectangle;
+  private pauseStatsText?: Phaser.GameObjects.Text;
 
   constructor() {
     super(GameScene.KEY);
@@ -114,6 +123,8 @@ export class GameScene extends Phaser.Scene {
     this.score = 0;
     this.coinCount = 0;
     this.bloodstoneCount = 0;
+    this.killCount = 0;
+    this.totalDamageDealt = 0;
     this.isGameOver = false;
     this.isPaused = false;
     this.gameTime = 0;
@@ -125,6 +136,7 @@ export class GameScene extends Phaser.Scene {
     this.lastCoinStr = '';
     this.lastBloodstoneStr = '';
     this.lastTimerStr = '';
+    this.lastKillStr = '';
     this.levelSystem = new LevelSystem();
     this.levelSystem.reset();
     this.passiveSystem = new PassiveSystem();
@@ -172,6 +184,8 @@ export class GameScene extends Phaser.Scene {
     this.joystick = new VirtualJoystick(this);
     this.audio = new AudioManager(this);
     this.audio.startBgm();
+    this.createPauseMenu();
+    this.input.keyboard?.on('keydown-ESC', this.togglePause, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.handleShutdown, this);
   }
 
@@ -299,6 +313,15 @@ export class GameScene extends Phaser.Scene {
       .setDepth(depth + 1)
       .setScrollFactor(0);
 
+    this.killCountText = this.add
+      .text(WORLD.WIDTH * 0.5, HUD_CONFIG.POSITION_Y + 24, '', {
+        color: '#ff8866',
+        fontSize: '13px',
+      })
+      .setOrigin(0.5, 0)
+      .setDepth(depth + 1)
+      .setScrollFactor(0);
+
     (EQUIPMENT_CONFIG.SLOTS as readonly EquipmentSlot[]).forEach((slot, index) => {
       this.equipmentIndicators[slot] = this.add
         .rectangle(WORLD.WIDTH - HUD_CONFIG.POSITION_X - 12 - index * 18, WORLD.HEIGHT - 18, 12, 12, 0x1d1d1d)
@@ -309,6 +332,95 @@ export class GameScene extends Phaser.Scene {
 
     this.updateHud();
     this.refreshEquipmentIndicators();
+  }
+
+  private createPauseMenu(): void {
+    const depth = 250;
+
+    this.pauseOverlay = this.add
+      .rectangle(WORLD.WIDTH * 0.5, WORLD.HEIGHT * 0.5, WORLD.WIDTH, WORLD.HEIGHT, 0x000000, 0.75)
+      .setDepth(depth)
+      .setScrollFactor(0)
+      .setVisible(false);
+
+    this.pauseTitle = this.add
+      .text(WORLD.WIDTH * 0.5, 140, '⏸ PAUSED', {
+        color: '#ffcc44',
+        fontSize: '36px',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5)
+      .setDepth(depth + 1)
+      .setScrollFactor(0)
+      .setVisible(false);
+
+    this.pauseStatsText = this.add
+      .text(WORLD.WIDTH * 0.5, 200, '', {
+        color: '#cccccc',
+        fontSize: '16px',
+        align: 'center',
+      })
+      .setOrigin(0.5)
+      .setDepth(depth + 1)
+      .setScrollFactor(0)
+      .setVisible(false);
+
+    const resumeBtn = this.add.rectangle(WORLD.WIDTH * 0.5, 310, 200, 48, 0x24161a, 0.95).setStrokeStyle(2, 0xffcc44).setDepth(depth + 1).setScrollFactor(0).setVisible(false);
+    const resumeLabel = this.add.text(WORLD.WIDTH * 0.5, 310, '▶ RESUME', { color: '#ffcc44', fontSize: '20px', fontStyle: 'bold' }).setOrigin(0.5).setDepth(depth + 2).setScrollFactor(0).setVisible(false);
+
+    resumeBtn.setInteractive({ useHandCursor: true });
+    resumeBtn.on('pointerover', () => resumeBtn.setFillStyle(0x382026, 1));
+    resumeBtn.on('pointerout', () => resumeBtn.setFillStyle(0x24161a, 0.95));
+    resumeBtn.on('pointerdown', () => this.togglePause());
+
+    const quitBtn = this.add.rectangle(WORLD.WIDTH * 0.5, 380, 200, 48, 0x3a1111, 0.95).setStrokeStyle(2, 0xcc4444).setDepth(depth + 1).setScrollFactor(0).setVisible(false);
+    const quitLabel = this.add.text(WORLD.WIDTH * 0.5, 380, '✕ QUIT', { color: '#cc4444', fontSize: '20px', fontStyle: 'bold' }).setOrigin(0.5).setDepth(depth + 2).setScrollFactor(0).setVisible(false);
+
+    quitBtn.setInteractive({ useHandCursor: true });
+    quitBtn.on('pointerover', () => quitBtn.setFillStyle(0x552222, 1));
+    quitBtn.on('pointerout', () => quitBtn.setFillStyle(0x3a1111, 0.95));
+    quitBtn.on('pointerdown', () => {
+      this.isPaused = false;
+      this.isGameOver = true;
+      this.scene.start('CharacterSelectScene');
+    });
+
+    this.pauseResumeBtn = resumeBtn;
+    this.pauseQuitBtn = quitBtn;
+    this._pauseBtns = [
+      { bg: resumeBtn, label: resumeLabel },
+      { bg: quitBtn, label: quitLabel },
+    ];
+  }
+
+  private _pauseBtns: { bg: Phaser.GameObjects.Rectangle; label: Phaser.GameObjects.Text }[] = [];
+
+  private togglePause(): void {
+    if (this.isGameOver) {
+      return;
+    }
+
+    this.isPaused = !this.isPaused;
+
+    if (this.isPaused) {
+      this.physics.pause();
+      this.pauseStatsText?.setText([
+        `☠ Kills: ${this.killCount}`,
+        `💥 Damage: ${this.totalDamageDealt.toLocaleString()}`,
+        `⏱ Time: ${this.formatTime(this.gameTime)}`,
+        `⚔ Level: ${this.levelSystem.level}`,
+      ].join('\n'));
+    } else {
+      this.physics.resume();
+    }
+
+    this.pauseOverlay?.setVisible(this.isPaused);
+    this.pauseTitle?.setVisible(this.isPaused);
+    this.pauseStatsText?.setVisible(this.isPaused);
+    this._pauseBtns.forEach(({ bg, label }) => {
+      bg.setVisible(this.isPaused);
+      label.setVisible(this.isPaused);
+    });
   }
 
   private createGameOverOverlay(): void {
@@ -374,6 +486,7 @@ private handlePlayerHit(
   this.particleManager.hitEffect(player.x, player.y, 0xff4444);
   player.takeDamage(damage);
   this.audio?.play('player-hit');
+  this.cameras.main.shake(120, 0.004);
 
   // Add subtle screen flash on damage
   this.damageFlash?.setAlpha(0.15);
@@ -385,6 +498,7 @@ private handlePlayerHit(
 }
 
   private handleEnemyKilled(drop: KillDrop): void {
+    this.killCount += 1;
     this.score += drop.scoreValue;
     this.trackAchievementStats({ totalKills: 1 });
     this.particleManager.deathEffect(drop.x, drop.y);
@@ -394,6 +508,7 @@ private handlePlayerHit(
   }
 
   private handleEliteKilled(drop: KillDrop): void {
+    this.killCount += 1;
     this.score += drop.scoreValue;
     this.trackAchievementStats({ totalKills: 1 });
     this.particleManager.deathEffect(drop.x, drop.y);
@@ -403,6 +518,7 @@ private handlePlayerHit(
   }
 
   private handleBossKilled(drop: BossKillDrop): void {
+    this.killCount += 1;
     this.score += drop.scoreValue;
     this.trackAchievementStats({ totalKills: 1, totalBossKills: 1 });
     this.particleManager.bossDeathEffect(drop.x, drop.y);
@@ -426,6 +542,8 @@ private handlePlayerHit(
   }
 
   private handleDamageDealt(amount: number): void {
+    this.totalDamageDealt += amount;
+
     if (!this.player || this.player.hp <= 0) {
       return;
     }
@@ -602,6 +720,8 @@ private handlePlayerHit(
     const lines = [
       `⚔️ Level ${this.levelSystem.level}`,
       `💀 Score: ${this.score}`,
+      `☠ Kills: ${this.killCount}`,
+      `💥 Damage: ${this.totalDamageDealt.toLocaleString()}`,
       `🪙 Coins: ${this.coinCount}`,
       `💎 Bloodstones: ${this.bloodstoneCount}`,
       `⏱️ Time: ${this.formatTime(this.gameTime)}`,
@@ -642,6 +762,9 @@ private handlePlayerHit(
     let timerStr = this.formatTime(this.gameTime);
     if (timerStr !== this.lastTimerStr) { this.timerText?.setText(timerStr); this.lastTimerStr = timerStr; }
 
+    let killStr = `☠ ${this.killCount}`;
+    if (killStr !== this.lastKillStr) { this.killCountText?.setText(killStr); this.lastKillStr = killStr; }
+
     this.refreshEquipmentIndicators();
   }
 
@@ -657,6 +780,7 @@ private handlePlayerHit(
     this.events.off('equipment-collected', this.handleEquipmentCollected, this);
     this.events.off('player-died', this.handlePlayerDied, this);
     this.events.off('damage-dealt', this.handleDamageDealt, this);
+    this.input.keyboard?.off('keydown-ESC', this.togglePause, this);
     this.enemySpawner?.destroy();
     this.joystick?.destroy();
     this.audio?.destroy();
